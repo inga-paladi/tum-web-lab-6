@@ -1,3 +1,4 @@
+// Import necessary dependencies
 import React from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -11,19 +12,22 @@ import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import AdbIcon from '@mui/icons-material/Adb';
-import profile from "./profile.jpg"
+import profile from "./profile.jpg";
 
-const pages = ['Home','Workouts'];
-const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
-
-function ResponsiveAppBar() {
+// Define the component
+function ResponsiveAppBar({ setTheme, lightTheme, darkTheme, pages, settings }) {
+  // Define state for anchor elements
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
+  // Event handlers for opening/closing navigation and user menus
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
   };
+  
   const handleOpenUserMenu = (event) => {
     setAnchorElUser(event.currentTarget);
   };
@@ -36,10 +40,17 @@ function ResponsiveAppBar() {
     setAnchorElUser(null);
   };
 
+  // Event handler for toggling between light and dark themes
+  const handleToggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === lightTheme ? darkTheme : lightTheme));
+  };
+
+  // Return the JSX markup
   return (
     <AppBar position="static">
       <Container maxWidth="xl">
         <Toolbar disableGutters>
+          {/* Your app logo */}
           <AdbIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
           <Typography
             variant="h6"
@@ -58,7 +69,7 @@ function ResponsiveAppBar() {
           >
             GYMPIRE
           </Typography>
-
+          {/* Navigation menu for mobile */}
           <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
               size="large"
@@ -88,6 +99,7 @@ function ResponsiveAppBar() {
                 display: { xs: 'block', md: 'none' },
               }}
             >
+              {/* Menu items */}
               {pages.map((page) => (
                 <MenuItem key={page} onClick={handleCloseNavMenu}>
                   <Typography textAlign="center">{page}</Typography>
@@ -95,6 +107,7 @@ function ResponsiveAppBar() {
               ))}
             </Menu>
           </Box>
+          {/* Logo for mobile */}
           <AdbIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }} />
           <Typography
             variant="h5"
@@ -114,6 +127,7 @@ function ResponsiveAppBar() {
           >
             GYMPIRE
           </Typography>
+          {/* Navigation buttons for desktop */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
             {pages.map((page) => (
               <Button
@@ -125,7 +139,7 @@ function ResponsiveAppBar() {
               </Button>
             ))}
           </Box>
-
+          {/* User profile menu */}
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Open settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
@@ -148,11 +162,19 @@ function ResponsiveAppBar() {
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
             >
+              {/* User settings */}
               {settings.map((setting) => (
                 <MenuItem key={setting} onClick={handleCloseUserMenu}>
                   <Typography textAlign="center">{setting}</Typography>
                 </MenuItem>
               ))}
+              {/* Theme toggle */}
+              <MenuItem onClick={handleToggleTheme}>
+                <Brightness4Icon /> {/* Light theme */}
+              </MenuItem>
+              <MenuItem onClick={handleToggleTheme}>
+                <Brightness7Icon /> {/* Dark theme */}
+              </MenuItem>
             </Menu>
           </Box>
         </Toolbar>
@@ -160,4 +182,6 @@ function ResponsiveAppBar() {
     </AppBar>
   );
 }
+
+// Export the component
 export default ResponsiveAppBar;

@@ -4,25 +4,64 @@ import Exercise1 from "./muscleUp.jpg";
 import Exercise2 from "./pushUp.jpeg";
 import Exercise3 from "./pullUps.png";
 import { styled } from '@mui/material/styles';
-import { Box, Divider, Grid, Paper, Button, TextField, MenuItem, Select, FormControl, InputLabel, Checkbox } from "@mui/material";
-import ResponsiveAppBar from "./ResponsiveAppBar";
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 
-const Item = styled(Paper)(({ theme }) => ({
-  backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
-  ...theme.typography.body2,
-  padding: theme.spacing(1),
-  textAlign: 'center',
-  color: theme.palette.text.secondary,
+import { Box, Divider, Paper, Button, TextField, MenuItem, Select, FormControl, InputLabel, Checkbox } from "@mui/material";
+import ResponsiveAppBar from "./ResponsiveAppBar";
+export {lightTheme, darkTheme};
+
+const pages = ['Home', 'Workouts'];
+const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
+
+const lightTheme = createTheme({
+  palette: {
+    mode: 'light',
+  },
+});
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
+
+const Container = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'center',
 }));
 
-const exercisesList = [
-  { id: 1, name: "Exercise 1", image: Exercise1 },
-  { id: 2, name: "Exercise 2", image: Exercise2 },
-  { id: 3, name: "Exercise 3", image: Exercise3 }
-];
+const Content = styled(Box)(({ theme }) => ({
+  backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
+  padding: theme.spacing(3),
+  borderRadius: theme.spacing(2),
+  boxShadow: theme.shadows[3],
+  width: '90%',
+  maxWidth: 800,
+}));
+
+const WorkoutBox = styled(Paper)(({ theme }) => ({
+  backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#f9fafa',
+  borderRadius: theme.spacing(2),
+  boxShadow: theme.shadows[1],
+  padding: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+  textAlign: 'center',
+}));
+
+const ExerciseImage = styled('img')({
+  width: 30,
+  height: 30,
+  borderRadius: '50%',
+  marginRight: 5,
+});
 
 function App() {
   const [workouts, setWorkouts] = useState([]);
+  const [theme, setTheme] = useState(lightTheme); // Default to light theme
+  
+  const toggleTheme = () => {
+    setTheme(theme === lightTheme ? darkTheme : lightTheme);
+  };
 
   const addWorkout = () => {
     const newWorkout = {
@@ -56,7 +95,7 @@ function App() {
       if (workout.id === workoutId) {
         const updatedExercises = [...workout.exercises, { 
           ...exerciseToAdd,
-          id: Date.now(), // Generate a unique ID for the exercise
+          id: Date.now(), 
           sets: [{ numberOfSets: 0, previous: 0, kg: 0, reps: 0, completed: false }] 
         }];
         return { ...workout, exercises: updatedExercises, showAddButton: false };
@@ -65,10 +104,6 @@ function App() {
     });
     setWorkouts(updatedWorkouts);
   };
-  
-  
-  
-  
 
   const removeExercise = (workoutId, exerciseId) => {
     const updatedWorkouts = workouts.map(workout => {
@@ -80,6 +115,7 @@ function App() {
     });
     setWorkouts(updatedWorkouts);
   };
+  
 
   const handleSetChange = (workoutId, exerciseId, setIndex, field, value) => {
     const updatedWorkouts = workouts.map(workout => {
@@ -141,101 +177,98 @@ function App() {
     });
     setWorkouts(updatedWorkouts);
   };
+
+  const exercisesList = [
+    { id: 1, name: "Muscle Up", image: Exercise1 },
+    { id: 2, name: "Push Up", image: Exercise2 },
+    { id: 3, name: "Pull Ups", image: Exercise3 }
+  ];
+
   return (
-    <>
-      <ResponsiveAppBar />
-      <Box
-        display="flex"
-        justifyContent="center"
-      >
-        <Box
-          sx={{
-            backgroundColor: "#F9FAFB",
-            padding: "15px"
-          }}
-          width={800}
-        >
-          <p style={{ fontWeight: "bold" }}>Workouts</p>
+    <ThemeProvider theme = {theme}>
+      <ResponsiveAppBar setTheme={setTheme} lightTheme={lightTheme} darkTheme={darkTheme} pages={pages} settings={settings} />
 
-          {workouts.map(workout => (
-            <div key={workout.id} className="workout-box">
-              <TextField
-                label="Workout Name"
-                value={workout.name}
-                onChange={(e) => handleNameChange(workout.id, e.target.value)}
-              />
-              <Divider />
+      <Container  sx={{ backgroundColor: theme.palette.background.default, minHeight: '100vh' }}>
+        <Content>
+          <p style={{ fontWeight: "bold", fontSize: 18 }}>Workouts</p>
 
-              {workout.exercises.map(exercise => (
-                <div key ={exercise.id} >
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <img src={exercise.image} alt={exercise.name} style={{ width: '50px', marginRight: '10px' }} />
-                    <p>{exercise.name}</p>
-                  </div>
+          <Box display="flex" flexWrap="wrap" justifyContent="center" rowGap={20} columnGap={20}>
+            {workouts.map(workout => (
+              <WorkoutBox key={workout.id}>
+                <TextField
+                  label="Workout Name"
+                  value={workout.name}
+                  onChange={(e) => handleNameChange(workout.id, e.target.value)}
+                  style={{ marginBottom: 10, width: '100%' }}
+                />
+                <Divider />
+
+                {workout.exercises.map(exercise => (
+                  <div key={exercise.id} style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginTop: 10 }}>
+                      <ExerciseImage src={exercise.image} alt={exercise.name} />
+                      <p>{exercise.name}</p>
+                    </div>
                     {exercise.sets.map((set, index) => (
-                      <div key={index} style={{ display: 'flex', alignItems: 'center', marginTop: '5px' }}>
+                      <div key={index} style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
                         <p>{`Set ${index + 1}: `}</p>
-                        <TextField
-                          type="number"
-                          label="Previous (kg * reps)"
-                          value={set.previous}
-                          onChange={(e) => handleSetChange(workout.id, exercise.id, index, 'previous', parseInt(e.target.value))}
-                          style={{ marginRight: '10px', width: '100px' }}
-                        />
+                        
                         <TextField
                           type="number"
                           label="Kg"
                           value={set.kg}
                           onChange={(e) => handleSetChange(workout.id, exercise.id, index, 'kg', parseInt(e.target.value))}
-                          style={{ marginRight: '10px', width: '50px' }}
+                          style={{ marginRight: 10, width: 70 }}
                         />
                         <TextField
                           type="number"
                           label="Reps"
                           value={set.reps}
                           onChange={(e) => handleSetChange(workout.id, exercise.id, index, 'reps', parseInt(e.target.value))}
-                          style={{ marginRight: '10px', width: '50px' }}
+                          style={{ marginRight: 10, width: 70 }}
                         />
                         <Checkbox
                           checked={set.completed}
                           onChange={(e) => handleCheckboxChange(workout.id, exercise.id, index, e.target.checked)}
                         />
-                        <Button onClick={() => removeExercise(workout.id, exercise.id)}>Remove</Button>
-                        <hr />
+                        <Button onClick={() => removeExercise(workout.id, exercise.id)} size="small">Remove</Button>
                       </div>
                     ))}
-                    <Button onClick={() => addSet(workout.id, exercise.id)}>Add Set</Button>
-                    <hr />  
-              </div>
-            ))}
-
-            <FormControl>
-              <InputLabel id="exercise-select-label">Select Exercise</InputLabel>
-              <Select
-                labelId="exercise-select-label"
-                id="exercise-select"
-                value={0}
-                onChange={(e) => handleAddExercise(workout.id, e.target.value)}
-              >
-                {exercisesList.map(exercise => (
-                  <MenuItem key={exercise.id} value={exercise.id}>
-                    <img src={exercise.image} alt={exercise.name} style={{ width: '20px', marginRight: '10px' }} />
-                    {exercise.name}
-                  </MenuItem>
+                    <Button onClick={() => addSet(workout.id, exercise.id)} size="small">Add Set</Button>
+                  </div>
                 ))}
-              </Select>
-            </FormControl>
 
-            <Button onClick={() => removeWorkout(workout.id)}>Remove Workout</Button>
-          </div>
-        ))}
+                <FormControl style={{ marginTop: 10, width: '100%' }}>
+                  <InputLabel id="exercise-select-label">Select Exercise</InputLabel>
+                  <Select
+                    labelId="exercise-select-label"
+                    id="exercise-select"
+                    value={0}
+                    onChange={(e) => handleAddExercise(workout.id, e.target.value)}
+                    style={{ width: '100%' }}
+                  >
+                    {exercisesList.map(exercise => (
+                      <MenuItem key={exercise.id} value={exercise.id}>
+                        <ExerciseImage src={exercise.image} alt={exercise.name} />
+                        {exercise.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-        <Button onClick={addWorkout}>Add Workout</Button>
+                <Button onClick={() => removeWorkout(workout.id)} size="small">Remove Workout</Button>
+              </WorkoutBox>
+            ))}
+          </Box>
 
-      </Box>
-    </Box>
-  </>
-);
+          <Button onClick={addWorkout} variant="contained" color="primary" style={{ marginBottom: 20 }}>
+            Add Workout
+          </Button>
+
+        </Content>
+      </Container>
+    </ThemeProvider>
+  );
 }
 
 export default App;
