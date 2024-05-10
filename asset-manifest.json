@@ -1,19 +1,19 @@
 {
   "files": {
-    "main.css": "/tum-web-lab-6/static/css/main.25d4e082.css",
-    "main.js": "/tum-web-lab-6/static/js/main.d53c7a65.js",
+    "main.css": "/tum-web-lab-6/static/css/main.78ac09eb.css",
+    "main.js": "/tum-web-lab-6/static/js/main.97b09fea.js",
     "static/js/453.b8132c15.chunk.js": "/tum-web-lab-6/static/js/453.b8132c15.chunk.js",
     "static/media/profile.jpg": "/tum-web-lab-6/static/media/profile.51cda0ded2aadb1f8240.jpg",
     "static/media/pullUps.png": "/tum-web-lab-6/static/media/pullUps.ada75e2a60e87ba5ae98.png",
     "static/media/muscleUp.jpg": "/tum-web-lab-6/static/media/muscleUp.976ccc5913aa2a86e4f3.jpg",
     "static/media/pushUp.jpeg": "/tum-web-lab-6/static/media/pushUp.1320f73d0d560da05b80.jpeg",
     "index.html": "/tum-web-lab-6/index.html",
-    "main.25d4e082.css.map": "/tum-web-lab-6/static/css/main.25d4e082.css.map",
-    "main.d53c7a65.js.map": "/tum-web-lab-6/static/js/main.d53c7a65.js.map",
+    "main.78ac09eb.css.map": "/tum-web-lab-6/static/css/main.78ac09eb.css.map",
+    "main.97b09fea.js.map": "/tum-web-lab-6/static/js/main.97b09fea.js.map",
     "453.b8132c15.chunk.js.map": "/tum-web-lab-6/static/js/453.b8132c15.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.25d4e082.css",
-    "static/js/main.d53c7a65.js"
+    "static/css/main.78ac09eb.css",
+    "static/js/main.97b09fea.js"
   ]
 }
