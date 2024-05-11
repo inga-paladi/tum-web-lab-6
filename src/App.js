@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import './App.css';
 import Exercise1 from "./muscleUp.jpg";
 import Exercise2 from "./pushUp.jpeg";
@@ -8,7 +8,6 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 import { Box, Divider, Paper, Button, TextField, MenuItem, Select, FormControl, InputLabel, Checkbox } from "@mui/material";
 import ResponsiveAppBar from "./ResponsiveAppBar";
-export {lightTheme, darkTheme};
 
 const pages = ['Home', 'Workouts'];
 const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
@@ -29,6 +28,8 @@ const Container = styled(Box)(({ theme }) => ({
   display: 'flex',
   justifyContent: 'center',
 }));
+
+export {lightTheme, darkTheme};
 
 const Content = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
@@ -59,6 +60,46 @@ function App() {
   const [workouts, setWorkouts] = useState([]);
   const [theme, setTheme] = useState(lightTheme); // Default to light theme
   
+  const saveWorkoutToLocal = (workout) => {
+    localStorage.setItem(`workout_${workout.id}`, JSON.stringify(workout));
+
+    workout.exercises.forEach(exercise => {
+      localStorage.setItem(`exercise_${exercise.id}_workout_${workout.id}`, JSON.stringify(exercise));
+    });
+  };
+
+  const removeWorkoutFromLocal = (id) => {
+    localStorage.removeItem(`workout_${id}`);
+  };
+
+  const loadWorkoutsFromLocal = () => {
+    const workouts = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith('workout_')) {
+        const workout = JSON.parse(localStorage.getItem(key));
+        const exercises = [];
+        for (let j = 0; j < localStorage.length; j++) {
+          const exerciseKey = localStorage.key(j);
+          if (exerciseKey.startsWith('exercise_') && exerciseKey.includes(`workout_${workout.id}`)) {
+            const exercise = JSON.parse(localStorage.getItem(exerciseKey));
+            exercises.push(exercise);
+          }
+        }
+        workout.exercises = exercises;
+        workouts.push(workout);
+      }
+    }
+    return workouts;
+  };
+
+
+
+  useEffect(() => {
+    const storedWorkouts = loadWorkoutsFromLocal();
+    setWorkouts(storedWorkouts);
+  }, []);
+
   const toggleTheme = () => {
     setTheme(theme === lightTheme ? darkTheme : lightTheme);
   };
@@ -72,23 +113,29 @@ function App() {
       showExercisesList: false
     };
     setWorkouts([...workouts, newWorkout]);
+    saveWorkoutToLocal(newWorkout);
   };
 
   const removeWorkout = (id) => {
     const updatedWorkouts = workouts.filter(workout => workout.id !== id);
     setWorkouts(updatedWorkouts);
+    removeWorkoutFromLocal(id);
   };
 
   const handleNameChange = (id, newName) => {
     const updatedWorkouts = workouts.map(workout => {
       if (workout.id === id) {
-        return { ...workout, name: newName };
+        const updatedWorkout = { ...workout, name: newName };
+        saveWorkoutToLocal(updatedWorkout); // Save the updated workout data to local storage
+        return updatedWorkout;
       }
       return workout;
     });
     setWorkouts(updatedWorkouts);
   };
+  
 
+  // Inside handleAddExercise function
   const handleAddExercise = (workoutId, exerciseId) => {
     const exerciseToAdd = exercisesList.find(exercise => exercise.id === exerciseId);
     const updatedWorkouts = workouts.map(workout => {
@@ -103,6 +150,11 @@ function App() {
       return workout;
     });
     setWorkouts(updatedWorkouts);
+    updatedWorkouts.forEach(workout => {
+      if (workout.id === workoutId) {
+        saveWorkoutToLocal(workout); // Save the updated workout data to local storage
+      }
+    });
   };
 
   const removeExercise = (workoutId, exerciseId) => {
