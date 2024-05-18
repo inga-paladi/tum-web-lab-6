@@ -1,4 +1,3 @@
-// WorkoutManager.js
 import React, { useState, useEffect } from "react";
 import { Box, Divider, Paper, Button, TextField, MenuItem, Select, FormControl, InputLabel, Checkbox } from "@mui/material";
 import { styled } from '@mui/material/styles';
@@ -28,11 +27,12 @@ const WorkoutBox = styled(Paper)(({ theme }) => ({
   marginBottom: theme.spacing(2),
   textAlign: 'center',
 }));
+
 const exercisesList = [
-    { id: 1, name: "Muscle Up", image: Exercise1 },
-    { id: 2, name: "Push Up", image: Exercise2 },
-    { id: 3, name: "Pull Ups", image: Exercise3 }
-  ];
+  { id: 1, name: "Muscle Up", image: Exercise1 },
+  { id: 2, name: "Push Up", image: Exercise2 },
+  { id: 3, name: "Pull Ups", image: Exercise3 }
+];
 
 const ExerciseImage = styled('img')({
   width: 30,
@@ -46,7 +46,6 @@ const WorkoutManager = ({ theme, lightTheme, darkTheme }) => {
 
   const saveWorkoutToLocal = (workout) => {
     localStorage.setItem(`workout_${workout.id}`, JSON.stringify(workout));
-
     workout.exercises.forEach(exercise => {
       localStorage.setItem(`exercise_${exercise.id}_workout_${workout.id}`, JSON.stringify(exercise));
     });
@@ -112,9 +111,7 @@ const WorkoutManager = ({ theme, lightTheme, darkTheme }) => {
     setWorkouts(updatedWorkouts);
   };
 
-  // Inside handleAddExercise function
   const handleAddExercise = (workoutId, exerciseId) => {
-    
     const exerciseToAdd = exercisesList.find(exercise => exercise.id === exerciseId);
     const updatedWorkouts = workouts.map(workout => {
       if (workout.id === workoutId) {
@@ -194,100 +191,93 @@ const WorkoutManager = ({ theme, lightTheme, darkTheme }) => {
     const updatedWorkouts = workouts.map(workout => {
       if (workout.id === workoutId) {
         const updatedExercises = workout.exercises.map(exercise => {
-            if (exercise.id === exerciseId) {
-                const newSet = { numberOfSets: 0, previous: 0, kg: 0, reps: 0, completed: false };
-                return { ...exercise, sets: [...exercise.sets, newSet] };
-              }
-              return exercise;
-            });
-            return { ...workout, exercises: updatedExercises };
+          if (exercise.id === exerciseId) {
+            const newSet = { numberOfSets: 0, previous: 0, kg: 0, reps: 0, completed: false };
+            return { ...exercise, sets: [...exercise.sets, newSet] };
           }
-          return workout;
+          return exercise;
         });
-        setWorkouts(updatedWorkouts);
-      };
-    
-      return (
-        <Container sx={{ backgroundColor: theme.palette.background.default, minHeight: '100vh' }}>
-          <Content>
-            <p style={{ fontWeight: "bold", fontSize: 18 }}>Workouts</p>
-    
-            <Box display="flex" flexWrap="wrap" justifyContent="center" rowGap={20} columnGap={20}>
-              {workouts.map(workout => (
-                <WorkoutBox key={workout.id}>
-                  <TextField
-                    label="Workout Name"
-                    value={workout.name}
-                    onChange={(e) => handleNameChange(workout.id, e.target.value)}
-                    style={{ marginBottom: 10, width: '100%' }}
-                  />
-                  <Divider />
-    
-                  {workout.exercises.map(exercise => (
-                    <div key={exercise.id} style={{ marginBottom: 10 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', marginTop: 10 }}>
-                        <ExerciseImage src={exercise.image} alt={exercise.name} />
-                        <p>{exercise.name}</p>
-                      </div>
-                      {exercise.sets.map((set, index) => (
-                        <div key={index} style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
-                          <p>{`Set ${index + 1}: `}</p>
-                          
-                          <TextField
-                            type="number"
-                            label="Kg"
-                            value={set.kg}
-                            onChange={(e) => handleSetChange(workout.id, exercise.id, index, 'kg', parseInt(e.target.value))}
-                            style={{ marginRight: 10, width: 70 }}
-                          />
-                          <TextField
-                            type="number"
-                            label="Reps"
-                            value={set.reps}
-                            onChange={(e) => handleSetChange(workout.id, exercise.id, index, 'reps', parseInt(e.target.value))}
-                            style={{ marginRight: 10, width: 70 }}
-                          />
-                          <Checkbox
-                            checked={set.completed}
-                            onChange={(e) => handleCheckboxChange(workout.id, exercise.id, index, e.target.checked)}
-                          />
-                          <Button onClick={() => removeExercise(workout.id, exercise.id)} size="small">Remove</Button>
-                        </div>
-                      ))}
-                      <Button onClick={() => addSet(workout.id, exercise.id)} size="small">Add Set</Button>
+        return { ...workout, exercises: updatedExercises };
+      }
+      return workout;
+    });
+    setWorkouts(updatedWorkouts);
+  };
+
+  return (
+    <Container sx={{ backgroundColor: theme.palette.background.default, minHeight: '100vh' }}>
+      <Content>
+        <p style={{ fontWeight: "bold", fontSize: 18 }}>Workouts</p>
+        <Box display="flex" flexWrap="wrap" justifyContent="center" rowGap={20} columnGap={20}>
+          {workouts.map(workout => (
+            <WorkoutBox key={workout.id}>
+              <TextField
+                label="Workout Name"
+                value={workout.name}
+                onChange={(e) => handleNameChange(workout.id, e.target.value)}
+                style={{ marginBottom: 10, width: '100%' }}
+              />
+              <Divider />
+              {workout.exercises.map(exercise => (
+                <div key={exercise.id} style={{ marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginTop: 10 }}>
+                    <ExerciseImage src={exercise.image} alt={exercise.name} />
+                    <p>{exercise.name}</p>
+                  </div>
+                  {exercise.sets.map((set, index) => (
+                    <div key={index} style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
+                      <p>{`Set ${index + 1}: `}</p>
+                      <TextField
+                        type="number"
+                        label="Kg"
+                        value={set.kg}
+                        onChange={(e) => handleSetChange(workout.id, exercise.id, index, 'kg', parseInt(e.target.value))}
+                        style={{ marginRight: 10, width: 70 }}
+                      />
+                      <TextField
+                        type="number"
+                        label="Reps"
+                        value={set.reps}
+                        onChange={(e) => handleSetChange(workout.id, exercise.id, index, 'reps', parseInt(e.target.value))}
+                        style={{ marginRight: 10, width: 70 }}
+                      />
+                      <Checkbox
+                        checked={set.completed}
+                        onChange={(e) => handleCheckboxChange(workout.id, exercise.id, index, e.target.checked)}
+                      />
+                      <Button onClick={() => removeExercise(workout.id, exercise.id)} size="small">Remove</Button>
                     </div>
                   ))}
-    
-                  <FormControl style={{ marginTop: 10, width: '100%' }}>
-                    <InputLabel id="exercise-select-label">Select Exercise</InputLabel>
-                    <Select
-                      labelId="exercise-select-label"
-                      id="exercise-select"
-                      value={0}
-                      onChange={(e) => handleAddExercise(workout.id, e.target.value)}
-                      style={{ width: '100%' }}
-                    >
-                      {exercisesList.map(exercise => (
-                        <MenuItem key={exercise.id} value={exercise.id}>
-                          <ExerciseImage src={exercise.image} alt={exercise.name} />
-                          {exercise.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-    
-                  <Button onClick={() => removeWorkout(workout.id)} size="small">Remove Workout</Button>
-                </WorkoutBox>
+                  <Button onClick={() => addSet(workout.id, exercise.id)} size="small">Add Set</Button>
+                </div>
               ))}
-            </Box>
-    
-            <Button onClick={addWorkout} variant="contained" color="primary" style={{ marginBottom: 20 }}>
-              Add Workout
-            </Button>
-          </Content>
-        </Container>
-      );
-    };
-    
-    export default WorkoutManager;
-    
+              <FormControl style={{ marginTop: 10, width: '100%' }}>
+                <InputLabel id="exercise-select-label">Select Exercise</InputLabel>
+                <Select
+                  labelId="exercise-select-label"
+                  id="exercise-select"
+                  value={0}
+                  onChange={(e) => handleAddExercise(workout.id, e.target.value)}
+                  style={{ width: '100%' }}
+                >
+                  {exercisesList.map(exercise => (
+                    <MenuItem key={exercise.id} value={exercise.id}>
+                      <ExerciseImage src={exercise.image} alt={exercise.name} />
+                      {exercise.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Button onClick={() => removeWorkout(workout.id)} size="small">Remove Workout</Button>
+            </WorkoutBox>
+          ))}
+        </Box>
+        <Button onClick={addWorkout} variant="contained" color="primary" style={{ marginBottom: 20 }}>
+          Add Workout
+        </Button>
+      </Content>
+    </Container>
+  );
+};
+
+export default WorkoutManager;
