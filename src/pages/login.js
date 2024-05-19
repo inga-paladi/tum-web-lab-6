@@ -34,39 +34,13 @@ const Login = (props) => {
       setPasswordError('The password must be 8 characters or longer')
       return
     }
-  
-    // Authentication calls will be made here...
-    checkAccountExists((accountExists) => {
-      // If yes, log in
-      if (accountExists) logIn()
-      // Else, ask user if they want to create a new account and if yes, then log in
-      else if (
-        window.confirm(
-          'An account does not exist with this email address: ' + email + '. Do you want to create a new account?',
-        )
-      ) {
-        logIn()
-      }
-    })
+
+    logIn();
   }
-// Call the server API to check if the given email ID already exists
-const checkAccountExists = (callback) => {
-  fetch('http://localhost:3080/check-account', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email }),
-  })
-    .then((r) => r.json())
-    .then((r) => {
-      callback(r?.userExists)
-    })
-}
 
 // Log in a user using email and password
 const logIn = () => {
-  fetch('http://localhost:3080/auth', {
+  fetch('http://localhost:3000/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -75,7 +49,7 @@ const logIn = () => {
   })
     .then((r) => r.json())
     .then((r) => {
-      if ('success' === r.message) {
+      if (r.token) {
         localStorage.setItem('user', JSON.stringify({ email, token: r.token }))
         props.setLoggedIn(true)
         props.setEmail(email)

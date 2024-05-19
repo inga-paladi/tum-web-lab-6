@@ -1,0 +1,35 @@
+{
+    "users": [
+      {
+        "id": "1",
+        "email": "user@example.com",
+        "password": "$2b$10$qy/0VbJWqinq6RGZ0Tj9PeLdTUEHaigng6mUV5ngJ5xjYCwMTk8Iq",
+        "workouts": [
+          {
+            "id": "1",
+            "name": "Workout 1",
+            "exercises": ["Exercise 1", "Exercise 2"]
+          },
+          {
+            "id": "2",
+            "name": "Workout 2",
+            "exercises": ["Exercise 3", "Exercise 4"]
+          }
+        ]
+      },
+      {
+        "id": "2",
+        "email": "anotheruser@example.com",
+        "password": "hashedPassword",
+        "workouts": [
+          {
+            "id": "3",
+            "name": "Workout 3",
+            "exercises": ["Exercise 5", "Exercise 6"]
+          }
+        ]
+      }
+    ],
+    "topics": []
+  }
+  

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from 'axios';
 import { Box, Divider, Paper, Button, TextField, MenuItem, Select, FormControl, InputLabel, Checkbox } from "@mui/material";
 import { styled } from '@mui/material/styles';
 import Exercise1 from "./muscleUp.jpg";
@@ -41,98 +42,124 @@ const ExerciseImage = styled('img')({
   marginRight: 5,
 });
 
-const WorkoutManager = ({ theme, lightTheme, darkTheme }) => {
+const WorkoutManager = ({ theme }) => {
   const [workouts, setWorkouts] = useState([]);
-
-  const saveWorkoutToLocal = (workout) => {
-    localStorage.setItem(`workout_${workout.id}`, JSON.stringify(workout));
-    workout.exercises.forEach(exercise => {
-      localStorage.setItem(`exercise_${exercise.id}_workout_${workout.id}`, JSON.stringify(exercise));
-    });
-  };
-
-  const removeWorkoutFromLocal = (id) => {
-    localStorage.removeItem(`workout_${id}`);
-  };
-
-  const loadWorkoutsFromLocal = () => {
-    const storedWorkouts = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith('workout_')) {
-        const workout = JSON.parse(localStorage.getItem(key));
-        const exercises = [];
-        for (let j = 0; j < localStorage.length; j++) {
-          const exerciseKey = localStorage.key(j);
-          if (exerciseKey.startsWith('exercise_') && exerciseKey.includes(`workout_${workout.id}`)) {
-            const exercise = JSON.parse(localStorage.getItem(exerciseKey));
-            exercises.push(exercise);
-          }
-        }
-        workout.exercises = exercises;
-        storedWorkouts.push(workout);
-      }
-    }
-    return storedWorkouts;
-  };
+  const [token, setToken] = useState('');
 
   useEffect(() => {
-    const storedWorkouts = loadWorkoutsFromLocal();
-    setWorkouts(storedWorkouts);
+    const fetchToken = async () => {
+      try {
+        const token = JSON.parse(localStorage.getItem('user')).token;
+        setToken(token);
+        loadWorkoutsFromAPI(token); // Load workouts after setting the token
+      } catch (error) {
+        console.error('Error fetching token:', error);
+      }
+    };
+    fetchToken();
   }, []);
 
-  const addWorkout = () => {
-    const newWorkout = {
-      id: Date.now(),
-      name: "New Workout",
-      exercises: [],
-      showAddButton: true,
-      showExercisesList: false
-    };
-    setWorkouts([...workouts, newWorkout]);
-    saveWorkoutToLocal(newWorkout);
-  };
+  const apiClient = axios.create({
+    baseURL: 'http://localhost:3000',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  });
 
-  const removeWorkout = (id) => {
-    const updatedWorkouts = workouts.filter(workout => workout.id !== id);
-    setWorkouts(updatedWorkouts);
-    removeWorkoutFromLocal(id);
-  };
-
-  const handleNameChange = (id, newName) => {
-    const updatedWorkouts = workouts.map(workout => {
-      if (workout.id === id) {
-        const updatedWorkout = { ...workout, name: newName };
-        saveWorkoutToLocal(updatedWorkout); // Save the updated workout data to local storage
-        return updatedWorkout;
+  const loadWorkoutsFromAPI = async (authToken) => {
+    try {
+      const response = await apiClient.get('/workouts', {
+        headers: {
+          'authorization': authToken
+        }
+      });
+      setWorkouts(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.error('Workouts endpoint not found:', error);
+      } else {
+        console.error('Error loading workouts:', error);
       }
-      return workout;
-    });
-    setWorkouts(updatedWorkouts);
+    }
   };
 
-  const handleAddExercise = (workoutId, exerciseId) => {
+  const addWorkout = async () => {
+    const newWorkout = {
+      name: "New Workout",
+      exercises: []
+    };
+
+    try {
+      const response = await apiClient.post('/workouts', newWorkout, {
+        headers: {
+          'authorization': token
+        }
+      });
+      if (response.status === 201)
+        setWorkouts([...workouts, newWorkout]);
+    } catch (error) {
+      console.error('Error adding workout:', error);
+    }
+  };
+
+  const removeWorkout = async (id) => {
+    try {
+      await apiClient.delete(`/workouts/${id}`, {
+        headers: {
+          'authorization': token
+        }
+      });
+      setWorkouts(workouts.filter(workout => workout.id !== id));
+    } catch (error) {
+      console.error('Error removing workout:', error);
+    }
+  };
+
+  const handleNameChange = async (id, newName) => {
+    const updatedWorkout = workouts.find(workout => workout.id === id);
+    updatedWorkout.name = newName;
+
+    try {
+      const response = await apiClient.put(`/workouts/${id}`, updatedWorkout, {
+        headers: {
+          'authorization': token
+        }
+      });
+      setWorkouts(workouts.map(workout => workout.id === id ? response.data.workout : workout));
+    } catch (error) {
+      console.error('Error updating workout name:', error);
+    }
+  };
+
+  const handleAddExercise = async (workoutId, exerciseId) => {
     const exerciseToAdd = exercisesList.find(exercise => exercise.id === exerciseId);
     const updatedWorkouts = workouts.map(workout => {
       if (workout.id === workoutId) {
         const updatedExercises = [...workout.exercises, { 
           ...exerciseToAdd,
           id: Date.now(), 
-          sets: [{ numberOfSets: 0, previous: 0, kg: 0, reps: 0, completed: false }] 
+          sets: [{ numberOfSets: 0, previous: 0, weight: 0, reps: 0, completed: false }] 
         }];
         return { ...workout, exercises: updatedExercises, showAddButton: false };
       }
       return workout;
     });
-    setWorkouts(updatedWorkouts);
-    updatedWorkouts.forEach(workout => {
-      if (workout.id === workoutId) {
-        saveWorkoutToLocal(workout); // Save the updated workout data to local storage
-      }
-    });
+
+    const updatedWorkout = updatedWorkouts.find(workout => workout.id === workoutId);
+
+    try {
+      await apiClient.put(`/workouts/${workoutId}`, updatedWorkout, {
+        headers: {
+          'authorization': token
+        }
+      });
+      setWorkouts(updatedWorkouts);
+    } catch (error) {
+      console.error('Error adding exercise:', error);
+    }
   };
 
-  const removeExercise = (workoutId, exerciseId) => {
+  const removeExercise = async (workoutId, exerciseId) => {
     const updatedWorkouts = workouts.map(workout => {
       if (workout.id === workoutId) {
         const updatedExercises = workout.exercises.filter(exercise => exercise.id !== exerciseId);
@@ -140,10 +167,22 @@ const WorkoutManager = ({ theme, lightTheme, darkTheme }) => {
       }
       return workout;
     });
-    setWorkouts(updatedWorkouts);
+
+    const updatedWorkout = updatedWorkouts.find(workout => workout.id === workoutId);
+
+    try {
+      await apiClient.put(`/workouts/${workoutId}`, updatedWorkout, {
+        headers: {
+          'authorization': token
+        }
+      });
+      setWorkouts(updatedWorkouts);
+    } catch (error) {
+      console.error('Error removing exercise:', error);
+    }
   };
 
-  const handleSetChange = (workoutId, exerciseId, setIndex, field, value) => {
+  const handleSetChange = async (workoutId, exerciseId, setIndex, field, value) => {
     const updatedWorkouts = workouts.map(workout => {
       if (workout.id === workoutId) {
         const updatedExercises = workout.exercises.map(exercise => {
@@ -162,37 +201,31 @@ const WorkoutManager = ({ theme, lightTheme, darkTheme }) => {
       }
       return workout;
     });
-    setWorkouts(updatedWorkouts);
+
+    const updatedWorkout = updatedWorkouts.find(workout => workout.id === workoutId);
+
+    try {
+      await apiClient.put(`/workouts/${workoutId}`, updatedWorkout, {
+        headers: {
+          'authorization': token
+        }
+      });
+      setWorkouts(updatedWorkouts);
+    } catch (error) {
+      console.error('Error updating set:', error);
+    }
   };
 
-  const handleCheckboxChange = (workoutId, exerciseId, setIndex, checked) => {
+  const handleCheckboxChange = async (workoutId, exerciseId, setIndex, checked) => {
+    await handleSetChange(workoutId, exerciseId, setIndex, 'completed', checked);
+  };
+
+  const addSet = async (workoutId, exerciseId) => {
     const updatedWorkouts = workouts.map(workout => {
       if (workout.id === workoutId) {
         const updatedExercises = workout.exercises.map(exercise => {
           if (exercise.id === exerciseId) {
-            const updatedSets = exercise.sets.map((set, index) => {
-              if (index === setIndex) {
-                return { ...set, completed: checked };
-              }
-              return set;
-            });
-            return { ...exercise, sets: updatedSets };
-          }
-          return exercise;
-        });
-        return { ...workout, exercises: updatedExercises };
-      }
-      return workout;
-    });
-    setWorkouts(updatedWorkouts);
-  };
-
-  const addSet = (workoutId, exerciseId) => {
-    const updatedWorkouts = workouts.map(workout => {
-      if (workout.id === workoutId) {
-        const updatedExercises = workout.exercises.map(exercise => {
-          if (exercise.id === exerciseId) {
-            const newSet = { numberOfSets: 0, previous: 0, kg: 0, reps: 0, completed: false };
+            const newSet = { numberOfSets: 0, previous: 0, weight: 0, reps: 0, completed: false };
             return { ...exercise, sets: [...exercise.sets, newSet] };
           }
           return exercise;
@@ -201,11 +234,23 @@ const WorkoutManager = ({ theme, lightTheme, darkTheme }) => {
       }
       return workout;
     });
-    setWorkouts(updatedWorkouts);
+
+    const updatedWorkout = updatedWorkouts.find(workout => workout.id === workoutId);
+
+    try {
+      await apiClient.put(`/workouts/${workoutId}`, updatedWorkout, {
+        headers: {
+          'authorization': token
+        }
+      });
+      setWorkouts(updatedWorkouts);
+    } catch (error) {
+      console.error('Error adding set:', error);
+    }
   };
 
   return (
-    <Container sx={{ backgroundColor: theme.palette.background.default, minHeight: '100vh' }}>
+    <Container>
       <Content>
         <p style={{ fontWeight: "bold", fontSize: 18 }}>Workouts</p>
         <Box display="flex" flexWrap="wrap" justifyContent="center" rowGap={20} columnGap={20}>
@@ -214,70 +259,69 @@ const WorkoutManager = ({ theme, lightTheme, darkTheme }) => {
               <TextField
                 label="Workout Name"
                 value={workout.name}
-                onChange={(e) => handleNameChange(workout.id, e.target.value)}
-                style={{ marginBottom: 10, width: '100%' }}
-              />
-              <Divider />
-              {workout.exercises.map(exercise => (
-                <div key={exercise.id} style={{ marginBottom: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', marginTop: 10 }}>
-                    <ExerciseImage src={exercise.image} alt={exercise.name} />
-                    <p>{exercise.name}</p>
-                  </div>
-                  {exercise.sets.map((set, index) => (
-                    <div key={index} style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
-                      <p>{`Set ${index + 1}: `}</p>
-                      <TextField
-                        type="number"
-                        label="Kg"
-                        value={set.kg}
-                        onChange={(e) => handleSetChange(workout.id, exercise.id, index, 'kg', parseInt(e.target.value))}
-                        style={{ marginRight: 10, width: 70 }}
-                      />
-                      <TextField
-                        type="number"
-                        label="Reps"
-                        value={set.reps}
-                        onChange={(e) => handleSetChange(workout.id, exercise.id, index, 'reps', parseInt(e.target.value))}
-                        style={{ marginRight: 10, width: 70 }}
-                      />
-                      <Checkbox
-                        checked={set.completed}
-                        onChange={(e) => handleCheckboxChange(workout.id, exercise.id, index, e.target.checked)}
-                      />
-                      <Button onClick={() => removeExercise(workout.id, exercise.id)} size="small">Remove</Button>
-                    </div>
-                  ))}
-                  <Button onClick={() => addSet(workout.id, exercise.id)} size="small">Add Set</Button>
-                </div>
-              ))}
-              <FormControl style={{ marginTop: 10, width: '100%' }}>
-                <InputLabel id="exercise-select-label">Select Exercise</InputLabel>
-                <Select
-                  labelId="exercise-select-label"
-                  id="exercise-select"
-                  value={0}
-                  onChange={(e) => handleAddExercise(workout.id, e.target.value)}
-                  style={{ width: '100%' }}
-                >
-                  {exercisesList.map(exercise => (
-                    <MenuItem key={exercise.id} value={exercise.id}>
+                style={{ marginBottom: 10, width: '100%' }}              />
+                <Divider />
+                {workout.exercises.map(exercise => (
+                  <div key={exercise.id} style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginTop: 10 }}>
                       <ExerciseImage src={exercise.image} alt={exercise.name} />
-                      {exercise.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Button onClick={() => removeWorkout(workout.id)} size="small">Remove Workout</Button>
-            </WorkoutBox>
-          ))}
-        </Box>
-        <Button onClick={addWorkout} variant="contained" color="primary" style={{ marginBottom: 20 }}>
-          Add Workout
-        </Button>
-      </Content>
-    </Container>
-  );
-};
-
-export default WorkoutManager;
+                      <p>{exercise.name}</p>
+                    </div>
+                    {exercise.sets.map((set, index) => (
+                      <div key={index} style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
+                        <p>{`Set ${index + 1}: `}</p>
+                        <TextField
+                          type="number"
+                          label="weight"
+                          value={set.weight}
+                          onChange={(e) => handleSetChange(workout.id, exercise.id, index, 'weight', parseInt(e.target.value))}
+                          style={{ marginRight: 10, width: 70 }}
+                        />
+                        <TextField
+                          type="number"
+                          label="Reps"
+                          value={set.reps}
+                          onChange={(e) => handleSetChange(workout.id, exercise.id, index, 'reps', parseInt(e.target.value))}
+                          style={{ marginRight: 10, width: 70 }}
+                        />
+                        <Checkbox
+                          checked={set.completed}
+                          onChange={(e) => handleCheckboxChange(workout.id, exercise.id, index, e.target.checked)}
+                        />
+                        <Button onClick={() => removeExercise(workout.id, exercise.id)} size="small">Remove</Button>
+                      </div>
+                    ))}
+                    <Button onClick={() => addSet(workout.id, exercise.id)} size="small">Add Set</Button>
+                  </div>
+                ))}
+                <FormControl style={{ marginTop: 10, width: '100%' }}>
+                  <InputLabel id="exercise-select-label">Select Exercise</InputLabel>
+                  <Select
+                    labelId="exercise-select-label"
+                    id="exercise-select"
+                    value=""
+                    onChange={(e) => handleAddExercise(workout.id, e.target.value)}
+                    style={{ width: '100%' }}
+                  >
+                    {exercisesList.map(exercise => (
+                      <MenuItem key={exercise.id} value={exercise.id}>
+                        <ExerciseImage src={exercise.image} alt={exercise.name} />
+                        {exercise.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Button onClick={() => removeWorkout(workout.id)} size="small">Remove Workout</Button>
+              </WorkoutBox>
+            ))}
+          </Box>
+          <Button onClick={addWorkout} variant="contained" color="primary" style={{ marginBottom: 20 }}>
+            Add Workout
+          </Button>
+        </Content>
+      </Container>
+    );
+  };
+  
+  export default WorkoutManager;
+  

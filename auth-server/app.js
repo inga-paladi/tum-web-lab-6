@@ -1,105 +1,143 @@
-const express = require('express')
-const bcrypt = require('bcrypt')
-var cors = require('cors')
-const jwt = require('jsonwebtoken')
-var low = require('lowdb')
-var FileSync = require('lowdb/adapters/FileSync')
-var adapter = new FileSync('./database.json')
-var db = low(adapter)
+import express from 'express';
+import cors from 'cors';
+import jwt from 'jsonwebtoken';
+import * as database from './database.js';
+import swagger from "./swagger.js";
+import config  from "./config.js";
+const { sign, verify } = jwt;
 
 // Initialize Express app
-const app = express()
+const app = express();
 
 // Define a JWT secret key. This should be isolated by using env variables for security
-const jwtSecretKey = 'dsfdsfsdfdsvcsvdfgefg'
+const jwtSecretKey = 'dsfdsfsdfdsvcsvdfgefg';
 
 // Set up CORS and JSON middlewares
-app.use(cors())
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+app.use(cors()); // Use cors middleware to enable CORS
+swagger(app);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Middleware to authenticate requests
+const authenticateToken = (req, res, next) => {
+  const token = req.headers['authorization'];
+  if (!token)
+    return res.status(401).json({ message: "No token provided" });
+
+  try
+  {
+    const tokenData = verify(token, jwtSecretKey);
+    req.userId = tokenData.userId;
+    next();
+  }
+  catch (e)
+  {
+    return res.status(401).json({ message: "Token expired or is not valid" });
+  }
+};
 
 // Basic home route for the API
 app.get('/', (_req, res) => {
-  res.send('Auth API.\nPlease use POST /auth & POST /verify for authentication')
+  res.send('Hi!');
 })
 
-// The auth endpoint that creates a new user record or logs a user based on an existing record
-app.post('/auth', (req, res) => {
-  const { email, password } = req.body
+app.post('/login', (req, res) => {
+  const user = database.findUserByEmail(req.body.email);
+  if (!user || (user.password != req.body.password))
+    return res.status(404).json({ message: "Error loging in" });
 
-  // Look up the user entry in the database
-  const user = db
-    .get('users')
-    .value()
-    .filter((user) => email === user.email)
-
-  // If found, compare the hashed passwords and generate the JWT token for the user
-  if (user.length === 1) {
-    bcrypt.compare(password, user[0].password, function (_err, result) {
-      if (!result) {
-        return res.status(401).json({ message: 'Invalid password' })
-      } else {
-        let loginData = {
-          email,
-          signInTime: Date.now(),
-        }
-
-        const token = jwt.sign(loginData, jwtSecretKey)
-        res.status(200).json({ message: 'success', token })
-      }
-    })
-    // If no user is found, hash the given password and create a new entry in the auth db with the email and hashed password
-  } else if (user.length === 0) {
-    bcrypt.hash(password, 10, function (_err, hash) {
-      console.log({ email, password: hash })
-      db.get('users').push({ email, password: hash }).write()
-
-      let loginData = {
-        email,
-        signInTime: Date.now(),
-      }
-
-      const token = jwt.sign(loginData, jwtSecretKey)
-      res.status(200).json({ message: 'success', token })
-    })
+  const loginData = {
+    userId: user.id,
+    signInTime: Date.now(),
   }
-})
+
+  const token = sign(loginData, jwtSecretKey, { expiresIn: '60m' })
+  return res.status(200).json({ token: token });
+});
+
+app.post('/register', (req, res) => {
+  const user = database.findUserByEmail(req.body.email);
+  if (user)
+    return res.status(401).json({ status: 'invalid register', message: 'user already present' })
+
+  const newUser = {
+    id: Date.now(),
+    email: req.body.email,
+    password: req.body.password
+  };
+  database.addUser(newUser);
+  res.status(201).json({ message: 'Registered' });
+});
 
 // The verify endpoint that checks if a given JWT token is valid
-app.post('/verify', (req, res) => {
-  const tokenHeaderKey = 'jwt-token'
-  const authToken = req.headers[tokenHeaderKey]
-  try {
-    const verified = jwt.verify(authToken, jwtSecretKey)
-    if (verified) {
-      return res.status(200).json({ status: 'logged in', message: 'success' })
-    } else {
-      // Access Denied
-      return res.status(401).json({ status: 'invalid auth', message: 'error' })
-    }
-  } catch (error) {
-    // Access Denied
-    return res.status(401).json({ status: 'invalid auth', message: 'error' })
+app.get('/verify', (req, res) => {
+  const token = req.headers['authorization'];
+  if (!token)
+    return res.status(401).json({ message: "No token provided" });
+
+  try
+  {
+    verify(token, jwtSecretKey);
+    return res.status(200).json({ status: 'logged in', message: 'success' });
   }
-})
+  catch (e)
+  {
+    return res.status(401).json({ message: "Token expired or is not valid" });
+  }
+});
 
-// An endpoint to see if there's an existing account for a given email address
-app.post('/check-account', (req, res) => {
-  const { email } = req.body
+app.get('/workouts', authenticateToken, (req, res) => {
+  res.status(200).json(database.getAllWorkouts(req.userId));
+});
 
-  console.log(req.body)
+app.get('/workouts/:id', authenticateToken, (req, res) => {
+  const workout = database.getWorkout(req.params.id);
+  if (workout.userId != req.userId)
+    return res.status(403).json({ message: "Access forbidden" });
 
-  const user = db
-    .get('users')
-    .value()
-    .filter((user) => email === user.email)
+  res.status(200).json(workout);
+});
 
-  console.log(user)
+app.post('/workouts', authenticateToken, (req, res) => {
+  var newWorkout = req.body;
+  newWorkout.id = Math.floor(Math.random() * 99999) + 1;
+  newWorkout.userId = req.userId;
+  database.addWorkout(newWorkout);
+  res.status(201).json({ message: 'Workout created' });
+});
 
-  res.status(200).json({
-    status: user.length === 1 ? 'User exists' : 'User does not exist',
-    userExists: user.length === 1,
-  })
-})
+app.put('/workouts/:id', authenticateToken, (req, res) => {
+  const workoutIdToUpdate = req.params.id;
+  const oldWorkout = database.getWorkout(workoutIdToUpdate);
+  if (!oldWorkout)
+    return res.status(404).json({ message: "Workout with id not found" });
 
-app.listen(3080)
+  if (oldWorkout.userId != req.userId)
+    return res.status(403).json({ message: "Access forbidden" });
+
+  var newWorkout = req.body;
+  newWorkout.id = oldWorkout.id;
+  newWorkout.userId = oldWorkout.userId;
+  
+  database.removeWorkout(workoutIdToUpdate);
+  database.addWorkout(newWorkout);
+
+  res.status(201).json({ message: 'Workout updated'});
+});
+
+app.delete('/workouts/:id', authenticateToken, (req, res) => {
+  const workoutIdToDelete = req.params.id;
+  const workout = database.getWorkout(workoutIdToDelete);
+  if (!workout)
+    return res.status(404).json({ message: "Workout with id not found" });
+
+  if (workout.userId != req.userId)
+    return res.status(403).json({ message: "Access forbidden" });
+
+  database.removeWorkout(workoutIdToDelete);
+  res.status(200).json({ message: 'Workout deleted' });
+});
+
+app.listen(config.port, () => {
+  console.log("Server running on port " + config.port);
+});
